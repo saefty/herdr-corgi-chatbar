@@ -102,7 +102,7 @@ console.log("ok");
     " Bash command",
     " Build the site and list the output",
     "╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌",
-    " │ cd ~/work/site && npm run build 2>&1 | tail -5; ls -la dist |",
+    " │ cd site && npm run build 2>&1 | tail -5; ls -la dist |",
     " │ head -20",
     "╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌",
     " This command requires approval",
@@ -114,7 +114,7 @@ console.log("ok");
     "",
     " Esc to cancel · Tab to amend");
   assert.deepEqual(boxed.card, { kind: "permission", title: "Run this command?",
-    snippet: "cd ~/work/site && npm run build 2>&1 | tail -5; ls -la dist |\nhead -20", note: "Build the site and list the output" });
+    snippet: "cd site && npm run build 2>&1 | tail -5; ls -la dist |\nhead -20", note: "Build the site and list the output" });
 
   // Edit: the file, not the diff.
   const edit = screen(
