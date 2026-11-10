@@ -1,5 +1,7 @@
 # Chat bar
 
+Answer your agents without leaving the tab you are in. Each agent that waits on you gets a chat bubble in the corner, with its question, the options as buttons and a reply field.
+
 A chat bar that floats in the bottom-right corner of every layout, like a messenger's chat tabs. Each agent that
 needs you gets a bubble with its question, the answer options as buttons and a reply field. Finished agents wait
 as round heads. You answer without leaving the tab you are in.
