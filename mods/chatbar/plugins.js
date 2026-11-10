@@ -20,7 +20,8 @@ export function infoFor(a, extra, hook) {
   const x = extra ?? {};
   const context = x.context ?? hook?.terminals?.[a.address] ?? hook?.spaces?.[a.space] ?? null;
   return {
-    title: clean(x.title) || clean(a.title) || clean(a.tab_name) || a.program?.name || a.address,
+    // A terminal that never set a title is titled by its address ("t2"): the tab's name says more.
+    title: clean(x.title) || (a.title !== a.address && clean(a.title)) || clean(a.tab_name) || a.program?.name || a.address,
     context,
     label: x.label ?? (context ? hook?.labels?.[context] ?? context : null),
     color: x.color ?? (context ? hook?.colors?.[context] ?? null : null),

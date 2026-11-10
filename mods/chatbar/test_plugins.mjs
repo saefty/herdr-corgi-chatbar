@@ -7,6 +7,7 @@ const agent = { address: "t4", space: "s1", space_name: "shop", tab_name: "api",
 // No providers, no hook: Herdr's own data, no tag, never hidden.
 assert.deepEqual(infoFor(agent, undefined, null), { title: "Fix login", context: null, label: null, color: null, hidden: false, progress: null, doing: null, session: null });
 assert.equal(infoFor({ ...agent, title: "" }, undefined, null).title, "api");
+assert.equal(infoFor({ ...agent, title: "t4" }, undefined, null).title, "api"); // untitled: Herdr titles it by its address
 assert.equal(infoFor({ ...agent, title: "", tab_name: "" }, undefined, null).title, "Claude Code");
 
 // The hook: context per space, its label and colour, hidden while another context is current.
