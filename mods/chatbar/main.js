@@ -121,7 +121,7 @@ export default class Chatbar extends View {
     return { done: p?.done ?? 0, total: p?.total ?? 0, eta: p?.eta ?? null, doing: i.doing ?? own.doing ?? null };
   }
 
-  read(address, cx) {
+  read(address, cx, retry = false) {
     const id = ++this.reads;
     this.screens[address] = { loading: id, lines: [], options: [] };
     cx.spawn(async (cx) => {
@@ -133,7 +133,12 @@ export default class Chatbar extends View {
         next = { lines: [], options: [], error: String(e) };
       }
       // Dropped when the status moved on (or another read started) meanwhile.
-      if (this.screens[address]?.loading === id) this.screens[address] = next;
+      if (this.screens[address]?.loading !== id) return;
+      // The status can arrive before the prompt is drawn: an empty screen is read once more, a second later.
+      if (!retry && !next.error && !next.lines.length && !next.options.length) {
+        return cx.timer.after(1000, (cx) => { if (this.screens[address]?.loading === id) this.read(address, cx, true); });
+      }
+      this.screens[address] = next;
       cx.notify();
     });
   }
