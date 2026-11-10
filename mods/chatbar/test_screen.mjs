@@ -94,6 +94,28 @@ console.log("ok");
   assert.deepEqual(bash.card, { kind: "permission", title: "Run this command?", snippet: "npm test -- --run src/cart", note: "Run the cart tests" });
   assert.deepEqual(bash.options.map((o) => o.key), ["1", "2", "3"]);
 
+  // Newer Bash prompt: description first, then the command in a dashed box with a gutter.
+  const boxed = screen(
+    "⏺ Checking that the build still passes",
+    "",
+    "────────────────────────────────────────────────────────────",
+    " Bash command",
+    " Build the site and list the output",
+    "╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌",
+    " │ cd ~/work/site && npm run build 2>&1 | tail -5; ls -la dist |",
+    " │ head -20",
+    "╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌",
+    " This command requires approval",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. Yes, and always allow access to dist/ from this project",
+    "   3. No",
+    "",
+    " Esc to cancel · Tab to amend");
+  assert.deepEqual(boxed.card, { kind: "permission", title: "Run this command?",
+    snippet: "cd ~/work/site && npm run build 2>&1 | tail -5; ls -la dist |\nhead -20", note: "Build the site and list the output" });
+
   // Edit: the file, not the diff.
   const edit = screen(
     "────────────────────────────────────────────",

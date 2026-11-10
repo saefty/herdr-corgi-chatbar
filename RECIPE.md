@@ -55,7 +55,9 @@ row, aligned to the bottom, 10 px gaps, 4 px side padding:
 - Permission prompt: the question ("Do you want to proceed?", "Do you want to make this edit to x?", "Do you want to
   allow …?", "Allow …?") with a first option starting "Yes" makes a card; the header line above it (`Bash
   command`, `Edit file`, `Create file`, `Fetch`, `Tool use`, …) picks the title, the block under the header the
-  snippet (its last line is the note when the block has two or more lines; for edits only the path). Plan
+  snippet (its last line is the note when the block has two or more lines; for edits only the path). Newer Bash
+  prompts put a one-line description first and the command in a dashed box with a `│` gutter: then the box is
+  the snippet (at most 4 lines) and the description the note. Plan
   approval: "Would you like to proceed?" or an option with auto-accept / manually approve / keep planning; the
   snippet is the plan's last `#` heading.
 - An option button sends that key (`hc keys <address> <n>`), cards included: Claude Code selects on the digit. Enter in the reply field sends the text
