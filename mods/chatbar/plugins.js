@@ -26,7 +26,17 @@ export function infoFor(a, extra, hook) {
     color: x.color ?? (context ? hook?.colors?.[context] ?? null : null),
     // Hidden: the hook shows one context now and this agent is in another.
     hidden: x.hidden ?? Boolean(hook?.current && context && context !== hook.current),
+    // Task-list progress {done, total, eta?}, "now doing", and the transcript to read them from.
+    progress: x.progress?.total > 0 ? { done: x.progress.done ?? 0, total: x.progress.total, eta: x.progress.eta ?? null } : null,
+    doing: typeof x.doing === "string" && x.doing ? x.doing : null,
+    session: typeof x.session === "string" && x.session ? x.session : null,
   };
+}
+
+// "3/7 · ~4 min left", or null without a task list.
+export function progressLine(p) {
+  if (!p?.total) return null;
+  return [`${p.done ?? 0}/${p.total}`, p.eta ? `~${p.eta} min left` : null].filter(Boolean).join(" · ");
 }
 
 // "Go to": through the context hook when one listens in this layout (it switches context, then runs), else focus here.
@@ -36,10 +46,12 @@ export function goTo(address, context, hook, layout, at) {
   return live ? { request: { key: hook.request, value: { context: context ?? null, run, at } }, run: [] } : { request: null, run };
 }
 
-// A "chatbar.request" -> { terminal, text } to open (text: a draft for the reply field), or null if it isn't one.
+// A "chatbar.request" -> { terminal, text, append } to open (text: a draft for the reply field; append: after
+// what is typed there), or null if it isn't one.
 export function readRequest(req) {
   if (!req || typeof req.terminal !== "string" || !["open", "draft"].includes(req.action)) return null;
-  return { terminal: req.terminal, text: req.action === "draft" && typeof req.text === "string" ? req.text : null };
+  const text = req.action === "draft" && typeof req.text === "string" ? req.text : null;
+  return { terminal: req.terminal, text, append: text != null && req.append === true };
 }
 
 // Go to's items (its PROVIDERS.md): "Reply to <title>" per agent that needs you or finished; picking one opens its bubble.

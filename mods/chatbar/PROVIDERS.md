@@ -16,6 +16,8 @@ if (shared("chatbar.api")) {
 
 - `action`: `"open"` opens the agent's bubble. `"draft"` opens it and puts `text` in its reply field. Nothing is
   sent; the person reads it, edits it and presses Enter.
+- `append`: optional, with `"draft"`: `true` adds `text` after what is already typed in the reply field (with a
+  space) instead of replacing it. Dictation uses this.
 - `terminal`: the agent's address. The bubble shows whatever the agent's status (also working or idle) and
   even if the agent is on screen, until the person closes it.
 - `from`, `at`: optional, for your own bookkeeping.
@@ -37,6 +39,9 @@ setShared("chatbar.agents.mymod", {
     label: "Blue",                    // optional: the tag text (else the hook's label for the context)
     color: "ansi4",                   // optional: a theme color name or #hex (else the hook's color)
     hidden: false,                    // optional: dims the bubble as "not in the current view"
+    progress: { done: 3, total: 7, eta: 4 }, // optional: the agent's task list; eta in minutes, or null
+    doing: "Editing src/cart/total.ts",      // optional: one line, what it is doing now
+    session: "/path/to/transcript.jsonl",    // optional: where to read progress from, when you don't publish it
   },
 });
 ```
@@ -46,6 +51,15 @@ and `null` or missing fields are skipped. Compare before you write: setting shar
 
 Without any provider the title is the terminal's title, else the tab name, else the program name. Without a
 context there is no tag and the header uses the accent color.
+
+**Progress.** For Claude Code agents the chat bar shows task-list progress ("3/7", a ring) and what the agent is
+doing now. A provider's `progress` and `doing` are used as given, and the chat bar reads nothing for that agent.
+Without them it runs `progress.py` (python3, every 5 s at most, only for agents shown in the bar or working out of
+sight) on the transcript: the provider's `session` path, else the Claude process under the terminal's pid and its
+`~/.claude/sessions/<pid>.json`, else the newest transcript in `~/.claude/projects/<folder slug>/`. It reads the
+latest `TodoWrite` list or `TaskCreate`/`TaskUpdate` tasks and the last tool call, appended bytes only. Publish
+`session` if you know the terminal's transcript better (another config folder, say). `progress.py` is plain Python
+and can be imported: `progress_of(path, cache)` returns `{done, total, eta, doing}`.
 
 ## 3. Context hook: `goto.context`
 
@@ -78,6 +92,15 @@ When the Go to mod is installed, the chat bar registers the provider `chatbar` i
 Picking one sets `chatbar.request` to `{action: "open", terminal, from: "goto"}`, which opens that bubble
 without leaving the current view. Without Go to these keys are simply unused.
 
+## 5. Dictation (optional)
+
+When the dictate mod is installed (it sets `dictate.api = {version: 1, ready, hint}`), each bubble's reply field
+gets a mic. A click sets `dictate.request` to
+`{action: "toggle", id: "chatbar:<address>", reply: {key: "chatbar.request", value: {action: "draft", terminal, append: true}}}`;
+dictate records, transcribes and writes `{...value, text}` back to `chatbar.request`, so the text lands in that
+bubble's reply field, unsent. The mic reads `dictate.state` (`{status, id}`) to show recording and transcribing.
+Not ready (`ready: false`): the mic is dimmed and its tooltip says what to install. Without dictate there is no mic.
+
 ## Keys the chat bar writes
 
 | Key | Shape | When |
@@ -86,4 +109,5 @@ without leaving the current view. Without Go to these keys are simply unused.
 | `chatbar.request` | `null` | after taking a request |
 | `chatbar.closed` | `{<address>: status}` | a bubble closed until its agent's status changes |
 | `goto.providers`, `goto.items.chatbar` | see 4. | on start, and when the list changes |
+| `dictate.request` | see 5. | the mic is clicked |
 | the hook's `request` | `{context, run, at}` | "Go to" with a context hook |

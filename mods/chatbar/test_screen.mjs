@@ -70,3 +70,85 @@ console.log("ok");
   if (!r.lines.some((l) => l.includes("How should we do this?"))) throw new Error("ask question: " + JSON.stringify(r.lines));
   console.log("ok ask");
 }
+
+// Answer cards: permission prompts and plan approval, from realistic Claude Code screens.
+{
+  const screen = (...l) => parseScreen(l.join("\n"));
+
+  // Bash: the command in the snippet, the agent's description as the note.
+  const bash = screen(
+    "⏺ Running the test suite before the commit.",
+    "",
+    "╭───────────────────────────────────────────────────────────╮",
+    "│ Bash command                                              │",
+    "│                                                           │",
+    "│   npm test -- --run src/cart                              │",
+    "│   Run the cart tests                                      │",
+    "│                                                           │",
+    "│ Do you want to proceed?                                   │",
+    "│ ❯ 1. Yes                                                  │",
+    "│   2. Yes, and don't ask again for npm test commands in    │",
+    "│      /work/shop                                           │",
+    "│   3. No, and tell Claude what to do differently (esc)     │",
+    "╰───────────────────────────────────────────────────────────╯");
+  assert.deepEqual(bash.card, { kind: "permission", title: "Run this command?", snippet: "npm test -- --run src/cart", note: "Run the cart tests" });
+  assert.deepEqual(bash.options.map((o) => o.key), ["1", "2", "3"]);
+
+  // Edit: the file, not the diff.
+  const edit = screen(
+    "────────────────────────────────────────────",
+    " Edit file",
+    " src/cart/total.ts",
+    "╭──────────────────────────────────────────╮",
+    "│ 12 -  return items.reduce(sum, 0);       │",
+    "│ 12 +  return round(items.reduce(sum, 0));│",
+    "╰──────────────────────────────────────────╯",
+    " Do you want to make this edit to total.ts?",
+    " ❯ 1. Yes",
+    "   2. Yes, allow all edits during this session (shift+tab)",
+    "   3. No, and tell Claude what to do differently (esc)",
+    "");
+  assert.deepEqual(edit.card, { kind: "permission", title: "Edit this file?", snippet: "src/cart/total.ts", note: null });
+
+  // Create file.
+  const create = screen(" Create file", " docs/notes.md", "╭───╮", "│ 1 # Notes │", "╰───╯", " Do you want to create notes.md?", " ❯ 1. Yes", "   2. Yes, allow all edits during this session (shift+tab)", "   3. No");
+  assert.equal(create.card.title, "Create this file?");
+  assert.equal(create.card.snippet, "docs/notes.md");
+
+  // Fetch and MCP tool use.
+  const fetch = screen(" Fetch", "", "   https://example.com/api/docs", "   Claude wants to fetch content from example.com", "", " Do you want to allow Claude to fetch this content?", " ❯ 1. Yes", "   2. Yes, and don't ask again for example.com", "   3. No, and tell Claude what to do differently (esc)");
+  assert.deepEqual(fetch.card, { kind: "permission", title: "Fetch this page?", snippet: "https://example.com/api/docs", note: "Claude wants to fetch content from example.com" });
+  const mcp = screen(" Tool use", "", "   tracker - get_issue(id: \"A-12\") (MCP)", "", " Do you want to proceed?", " ❯ 1. Yes", "   2. Yes, and don't ask again for tracker - get_issue commands", "   3. No");
+  assert.deepEqual(mcp.card, { kind: "permission", title: "Use this tool?", snippet: "tracker - get_issue(id: \"A-12\") (MCP)", note: null });
+
+  // An unknown permission prompt: the question is the title.
+  const other = screen(" Allow the agent to open the browser?", " ❯ 1. Yes", "   2. No");
+  assert.deepEqual(other.card, { kind: "permission", title: "Allow the agent to open the browser?", snippet: null, note: null });
+
+  // Plan approval: the plan's heading, the plan text stays in the lines.
+  const plan = screen(
+    " Ready to code?",
+    "",
+    " Here is Claude's plan:",
+    "╭──────────────────────────────────────╮",
+    "│ # Round cart totals                  │",
+    "│                                      │",
+    "│ 1. Add round() to the total          │",
+    "│ 2. Cover it with a test              │",
+    "╰──────────────────────────────────────╯",
+    "",
+    " Would you like to proceed?",
+    "",
+    " ❯ 1. Yes, and auto-accept edits",
+    "   2. Yes, and manually approve edits",
+    "   3. No, keep planning",
+    "",
+    " ctrl-g to edit in your editor");
+  assert.deepEqual(plan.card, { kind: "plan", title: "Approve the plan?", snippet: "Round cart totals", note: null });
+  assert.equal(plan.options.length, 3);
+  assert.ok(plan.lines.some((l) => l.includes("Cover it with a test")));
+
+  // A plain multiple-choice question is no card.
+  assert.equal(screen("Which database?", "❯ 1. Postgres", "  2. SQLite").card, undefined);
+  console.log("ok cards");
+}

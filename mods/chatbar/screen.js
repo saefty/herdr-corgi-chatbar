@@ -1,6 +1,7 @@
 // Trims a terminal screen (`hc read --json` text) to what a waiting agent asks:
 // numbered choices ("❯ 1. Yes") become options, the lines above them the question.
 // Without choices: the last lines above the input box (Claude Code's ─── ❯ ─── area).
+// Permission prompts and plan approval also get a card: what is asked, the command or file, a note.
 
 const RULE = /^[\s─━═╌┄┈┅┉\-_╭╮╰╯┌┐└┘]+$/;
 const OPTION = /^(?:[❯›>▶]\s*)?(\d)[.)]\s+(.+)$/;
@@ -29,6 +30,44 @@ function tail(lines, max) {
   return kept.map((l) => l.slice(Number.isFinite(indent) ? indent : 0));
 }
 
+// Claude Code's permission headers and what the card asks for each.
+const HEADERS = {
+  "Bash command": "Run this command?",
+  "Edit file": "Edit this file?",
+  "Create file": "Create this file?",
+  "Write file": "Write this file?",
+  "Read file": "Read this file?",
+  "Fetch": "Fetch this page?",
+  "Web search": "Search the web?",
+  "Tool use": "Use this tool?",
+};
+const PLAN = /keep planning|auto-accept|manually approve/i;
+
+// {kind, title, snippet, note} for a permission prompt or a plan approval, else null.
+export function cardFor(above, options) {
+  const lines = above.map((l) => l.trim());
+  const qi = lines.findLastIndex((l) => l);
+  const question = lines[qi] ?? "";
+  if (/would you like to proceed\?/i.test(question) || options.some((o) => PLAN.test(o.label))) {
+    // The plan's own heading, when it shows.
+    const head = lines.slice(0, qi).findLast((l) => /^#{1,3}\s/.test(l));
+    return { kind: "plan", title: "Approve the plan?", snippet: head ? head.replace(/^#+\s*/, "") : null, note: null };
+  }
+  if (!/^(do you want|allow|would you like)/i.test(question) || !/^yes\b/i.test(options[0]?.label ?? "")) return null;
+  const hi = lines.slice(0, qi).findLastIndex((l) => l in HEADERS);
+  const file = question.match(/(?:make this edit to|create|write to|read) (.+?)\?$/i)?.[1];
+  if (hi < 0) return { kind: "permission", title: question, snippet: file ?? null, note: null };
+  // The block under the header: up to the first blank line (an edit's diff box ends it too).
+  const block = [];
+  for (const l of lines.slice(hi + 1, qi)) {
+    if (!l || isRule(l)) { if (block.length) break; continue; }
+    block.push(l);
+  }
+  if (file || block.length < 2) return { kind: "permission", title: HEADERS[lines[hi]], snippet: block[0] ?? file ?? null, note: null };
+  // Command, then the agent's description of it on the last line.
+  return { kind: "permission", title: HEADERS[lines[hi]], snippet: block.slice(0, -1).slice(0, 3).join("\n"), note: block.at(-1) };
+}
+
 export function parseScreen(text, max = 12) {
   const lines = (text ?? "").split("\n").map(clean);
   // The last option block: the last "N. label" line, then upward while lines are options (or blank).
@@ -47,7 +86,8 @@ export function parseScreen(text, max = 12) {
       else if (lines[i].trim() && !isRule(lines[i]) && indentOf(lines[i]) <= optIndent) break;
     }
     if (options[0]?.key === "1") {
-      return { lines: tail(lines.slice(0, start), Math.max(4, max - options.length)), options };
+      const card = cardFor(lines.slice(0, start), options);
+      return { lines: tail(lines.slice(0, start), Math.max(4, max - options.length)), options, ...(card && { card }) };
     }
   }
   // No choices: cut the input box (the second-to-last rule near the bottom) and what's under it.
