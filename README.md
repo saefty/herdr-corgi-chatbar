@@ -1,5 +1,7 @@
 # Chat bar for Herdr
 
+Part of [Corgi](https://github.com/saefty/herdr-corgi), a set of Herdr mods that plug into each other.
+
 A chat bar in the bottom-right corner of every layout, one bubble per agent that is waiting on you. Read the
 agent's question, press one of its options or type a reply, and keep working where you are.
 
