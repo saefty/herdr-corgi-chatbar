@@ -1,5 +1,9 @@
 # Chat bar: the plug-in contract (version 1)
 
+The rules every mod in the herdr-corgi set shares (announcing, requests, providers, the context hook,
+versions) are in [CONVENTIONS.md](https://github.com/saefty/herdr-corgi/blob/main/CONVENTIONS.md). This page has
+what is specific to this mod.
+
 The chat bar works on its own. Everything here is optional: other mods talk to it through shared state only,
 and the chat bar never reads another mod's files. Load order doesn't matter: the chat bar reads these keys
 every time it renders, and a plug-in can write them whether or not the chat bar is installed.
