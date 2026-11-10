@@ -17,7 +17,7 @@ agent's question, press one of its options or type a reply, and keep working whe
 - **Three agents ask questions at once.** Each gets its own bubble, oldest first, up to three open side by
   side. The rest wait as round heads next to them.
 - **An agent finished.** It shows up as a head. Click it, type its next task, press Enter.
-- **Your hands are busy.** With the [dictate](https://github.com/saefty/herdr-dictate) mod installed, click the mic
+- **Your hands are busy.** With the [dictate](https://github.com/saefty/herdr-corgi-dictate) mod installed, click the mic
   in the reply field, speak, click again: the text lands in the field, transcribed on your Mac, not sent.
 - **The question needs more context.** "Open terminal" shows the agent's live terminal in a window over your
   layout. "Go to" takes you to its pane.
@@ -49,15 +49,15 @@ agent's question, press one of its options or type a reply, and keep working whe
 | Herdr with herdr-core (`hc`) | everything | required |
 | `python3` (standard library only) | progress and "now doing" | optional: without it the bar works, without progress |
 | Claude Code | answer cards, progress | other agents get their screen's last lines |
-| [dictate](https://github.com/saefty/herdr-dictate) mod, with ffmpeg and parakeet-mlx | the mic | optional, macOS only (`brew install ffmpeg`, `uv tool install parakeet-mlx`) |
+| [dictate](https://github.com/saefty/herdr-corgi-dictate) mod, with ffmpeg and parakeet-mlx | the mic | optional, macOS only (`brew install ffmpeg`, `uv tool install parakeet-mlx`) |
 
 ## Works with
 
-The chat bar, [Go to](https://github.com/saefty/herdr-goto), [PR review](https://github.com/saefty/herdr-pr-review)
-and [Dictate](https://github.com/saefty/herdr-dictate) each work alone. Installed together, they plug into each other:
+The chat bar, [Go to](https://github.com/saefty/herdr-corgi-goto), [PR review](https://github.com/saefty/herdr-corgi-pr-review)
+and [Dictate](https://github.com/saefty/herdr-corgi-dictate) each work alone. Installed together, they plug into each other:
 
 - With **Go to** (⌘⇧P), agents waiting on you show up as "Reply to …" and open their bubble here. Go to is
-  extensible: the chat bar uses its [provider contract](https://github.com/saefty/herdr-goto/blob/main/mods/goto/PROVIDERS.md).
+  extensible: the chat bar uses its [provider contract](https://github.com/saefty/herdr-corgi-goto/blob/main/mods/goto/PROVIDERS.md).
   A context mod that registers Go to's context hook also tags the bubbles and switches context on "Go to".
 - With **PR review**, Discuss on a finding opens the agent's bubble here with the finding drafted in the reply
   field (`chatbar.request`).
