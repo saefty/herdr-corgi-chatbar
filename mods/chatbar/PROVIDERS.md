@@ -104,12 +104,14 @@ gets a mic. A click sets `dictate.request` to
 dictate records, transcribes and writes `{...value, text}` back to `chatbar.request`, so the text lands in that
 bubble's reply field, unsent. The mic reads `dictate.state` (`{status, id}`) to show recording and transcribing.
 Not ready (`ready: false`): the mic is dimmed and its tooltip says what to install. Without dictate there is no mic.
+The command `chatbar.mic` (keys.json, or `herdr-app do chatbar.mic`) does the same for the front bubble;
+`chatbar.mic:<address>` for that agent's.
 
 ## Keys the chat bar writes
 
 | Key | Shape | When |
 |---|---|---|
-| `chatbar.api` | `{version: 1}` | on start |
+| `chatbar.api` | `{version: 1}` | on start; `null` when the bar's last copy closes (removed, quit) |
 | `chatbar.request` | `null` | after taking a request |
 | `chatbar.closed` | `{<address>: status}` | a bubble closed until its agent's status changes |
 | `goto.providers`, `goto.items.chatbar` | see 4. | on start, and when the list changes |

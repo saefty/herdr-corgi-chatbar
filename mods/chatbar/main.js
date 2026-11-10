@@ -10,7 +10,7 @@
 
 import { View, div, image, svg, PathBuilder } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings } from "herdr";
+import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings, nextCommand } from "herdr";
 import { parseScreen } from "./screen.js";
 import { API_VERSION, mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine } from "./plugins.js";
 
@@ -78,6 +78,21 @@ export default class Chatbar extends View {
     // Data only: the "waiting 5m" labels, and progress for the agents shown (poll skips when there are none).
     cx.timer.every(30000, (cx) => cx.notify());
     cx.timer.every(5000, (cx) => this.poll(cx));
+    // keys.json "chatbar.mic": dictate into the front bubble (chatbar.mic:<address>: into that agent's).
+    cx.spawn(async (cx) => {
+      for (;;) {
+        const c = String(await nextCommand());
+        if (c === "mic" || c.startsWith("mic:")) this.dictate(c.slice(4) || this.front);
+        cx.notify();
+      }
+    });
+  }
+
+  // Removed or closed: what the bar announces goes with it, so pr-review falls back to its own window and Go to stops
+  // offering "Reply to". Another copy that still runs announces them again on its next render.
+  async close() {
+    setShared("chatbar.api", null);
+    setShared("goto.items.chatbar", null);
   }
 
   // Task-list progress and "now doing" for this.want ({address, pid, cwd, session}), outside render.
@@ -154,7 +169,7 @@ export default class Chatbar extends View {
     delete this.screens[address];
   }
 
-  close(a) {
+  closeBox(a) {
     setShared("chatbar.closed", { ...closedMap(), [a.address]: a.status });
     this.picked = this.picked.filter((x) => x !== a.address);
     this.asked.delete(a.address);
@@ -212,6 +227,11 @@ export default class Chatbar extends View {
     const now = Date.now();
     const all = agents();
     this.take(cx);
+    if (shared("chatbar.api")?.version !== API_VERSION && !this.announcing) {
+      this.announcing = true;
+      cx.timer.after(0, () => { this.announcing = false; setShared("chatbar.api", { version: API_VERSION }); });
+    }
+    if (!shared("goto.items.chatbar")) this.lastItems = null;
     const { hook, info } = this.infos(all);
     this.info = info;
     this.hook = hook;
@@ -250,6 +270,7 @@ export default class Chatbar extends View {
     const blocked = waiting.filter((a) => a.status === "blocked" && !this.picked.includes(a.address)).sort((x, y) => at(x) - at(y));
     const open = [...this.picked.map((x) => byAddr.get(x)), ...blocked].slice(0, MAX_OPEN);
     const openSet = new Set(open.map((a) => a.address));
+    this.front = open[0]?.address ?? null;
     const heads = waiting.filter((a) => !openSet.has(a.address))
       .sort((x, y) => (x.status === y.status ? at(y) - at(x) : x.status === "blocked" ? -1 : 1));
 
@@ -363,7 +384,7 @@ export default class Chatbar extends View {
         if (min) { this.min.delete(addr); delete this.screens[addr]; } else this.min.add(addr);
         cx.notify();
       }))
-      .child(hdrBtn(`x-${addr}`, "✕", "Close until its status changes", (_e, cx) => { this.close(a); cx.notify(); }));
+      .child(hdrBtn(`x-${addr}`, "✕", "Close until its status changes", (_e, cx) => { this.closeBox(a); cx.notify(); }));
 
     const options = blocked ? screen?.options ?? [] : [];
     // A permission card says it all; a plan card keeps the plan's lines above it.
@@ -425,6 +446,14 @@ export default class Chatbar extends View {
   }
 
   // With the dictate mod (its dictate.api): record, and its text lands in this reply field (appended, not sent).
+  // The mic's click and the chatbar.mic command: record, the text comes back as a draft for this bubble.
+  dictate(addr) {
+    const api = shared("dictate.api"), st = shared("dictate.state");
+    if (!addr || !api?.ready || (st?.id === `chatbar:${addr}` && st.status === "transcribing")) return;
+    setShared("dictate.request", { action: "toggle", id: `chatbar:${addr}`, from: "chatbar", at: Date.now(),
+      reply: { key: "chatbar.request", value: { action: "draft", terminal: addr, append: true } } });
+  }
+
   mic(t, addr) {
     const api = shared("dictate.api");
     if (!api) return null;
@@ -435,11 +464,7 @@ export default class Chatbar extends View {
     return div().id(`mic-${addr}`).size(30).flex_none().rounded_full().flex().items_center().justify_center()
       .border_1().border_color(mine === "recording" ? t.blocked : t.input).cursor_pointer().tooltip(tip)
       .hover((s) => s.bg(t.hover))
-      .on_click(() => {
-        if (!api.ready || mine === "transcribing") return;
-        setShared("dictate.request", { action: "toggle", id: `chatbar:${addr}`, from: "chatbar", at: Date.now(),
-          reply: { key: "chatbar.request", value: { action: "draft", terminal: addr, append: true } } });
-      })
+      .on_click(() => this.dictate(addr))
       .child(mine === "recording" ? div().size(10).rounded_full().bg(t.blocked).loop("opacity", { from: 0.35, to: 1, period: 1000 })
         : mine === "transcribing" ? div().text_size(13).frames(["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"], 90)
         : svg("mods/chatbar/mic.svg").size(15).text_color(api.ready ? t.muted : t.dim));
