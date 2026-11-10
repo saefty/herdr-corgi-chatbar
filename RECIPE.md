@@ -1,4 +1,4 @@
-# Chat bar
+# Corgi · Chat bar
 
 Answer your agents without leaving the tab you are in. Each agent that waits on you gets a chat bubble in the corner, with its question, the options as buttons and a reply field.
 
