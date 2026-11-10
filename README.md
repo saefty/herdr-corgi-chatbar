@@ -81,7 +81,7 @@ and [Dictate](https://github.com/saefty/herdr-corgi-dictate) each work alone. In
 </tr>
 </table>
 
-Or tell your agent: add herdr.dev/mods/saefty/herdr-corgi-chatbar
+Or tell your agent: `Read ~/.config/herdr-app/AGENTS.md, then add this mod: https://github.com/saefty/herdr-corgi-chatbar/tree/main`
 
 By hand, step by step:
 
