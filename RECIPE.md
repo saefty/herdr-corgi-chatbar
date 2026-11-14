@@ -50,8 +50,9 @@ row, aligned to the bottom, 10 px gaps, 4 px side padding:
   any pane of the tab on screen, or the focused terminal, gets nothing: you can see it.
 - New bubbles mount folded and grow one frame later: the body's height and opacity animate (180 ms ease-out).
   Minimize animates back to the header.
-- A blocked bubble reads its agent's screen once per status change or open (`hc read <address> --json`) and
-  parses it: the last block of numbered lines starting at 1 becomes buttons (a `❯`/`›`/`>` marker, rules and
+- A blocked bubble reads its agent's screen on a status change or open (`hc read <address> --json`), then again
+  every 5 s and after an answer sent from it (an agent stays blocked while a prompt with several questions moves
+  to the next one; the bubble only changes when the screen did), and parses it: the last block of numbered lines starting at 1 becomes buttons (a `❯`/`›`/`>` marker, rules and
   indented description lines inside the block are allowed), the lines above it the question. Without
   options: the last lines above Claude Code's input box (the second-to-last rule near the bottom).
 - Permission prompt: the question ("Do you want to proceed?", "Do you want to make this edit to x?", "Do you want to
@@ -106,8 +107,8 @@ gpui-kit's `PathBuilder` with `window.paint_path` for rings, gpui-base's `InputS
   re-renders every mod.
 - Take a request, then set `chatbar.request` back to `null`; deduplicating by `at` breaks Go to's items,
   whose value is fixed.
-- A screen read takes about 0.4 s; read only open blocked bubbles, once per status change, and drop a result
-  whose status moved on meanwhile.
+- A screen read takes about 0.4 s; read only open blocked bubbles (on a status change, then every 5 s without a
+  "reading" note), and drop a result whose status moved on meanwhile.
 - The height transition needs an explicit body height: compute it from the line and option counts.
 - Herdr's `done` turns `idle` once someone looks at the agent, so a head disappears when you visit it.
 - Rings: `paint_path` coordinates are % of the element; draw the arc as a stroked polyline (48 points for a full

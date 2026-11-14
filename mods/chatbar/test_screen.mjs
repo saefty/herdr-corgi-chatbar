@@ -1,6 +1,6 @@
 // Run: node --test test_screen.mjs
 import assert from "node:assert/strict";
-import { parseScreen } from "./screen.js";
+import { parseScreen, nextScreen } from "./screen.js";
 
 // Claude Code permission prompt: options become buttons, the question stays above them.
 const perm = [
@@ -173,4 +173,38 @@ console.log("ok");
   // A plain multiple-choice question is no card.
   assert.equal(screen("Which database?", "❯ 1. Postgres", "  2. SQLite").card, undefined);
   console.log("ok cards");
+}
+
+// One prompt with several questions: the agent stays blocked while its screen moves from one question to the next,
+// so the bubble's screen has to follow another read, not the status. The screens are modelled on Claude Code's
+// AskUserQuestion with two questions (its tab line on top), not recorded from a run.
+{
+  const ask = (tabs, question, ...options) => [
+    tabs, "", question, "",
+    ...options,
+    "  3. Type something.",
+    "────────────────────────",
+    "  4. Chat about this", "",
+    "Enter to select · Tab/Arrow keys to navigate · Esc to cancel",
+  ].join("\n");
+  const first = ask("←  ☐ Storage  ☐ Tests  ✔ Submit  →", "Where should the reminders be stored?",
+    "❯ 1. In the loans table", "     One more column, no new table.", "  2. In their own table", "     Keeps the history of every reminder.");
+  const second = ask("←  ☒ Storage  ☐ Tests  ✔ Submit  →", "Which tests should cover it?",
+    "❯ 1. Unit tests only", "     Fast, no queue needed.", "  2. Unit and integration tests", "     Also runs the consumer against a queue.");
+  const shown = { ...parseScreen(first), sent: "option 1" };
+  assert.ok(shown.lines.some((l) => l.includes("Where should the reminders be stored?")));
+
+  // The next question replaces the first one, and "Sent option 1" goes with the question it answered.
+  const after = nextScreen(shown, parseScreen(second));
+  assert.ok(after.lines.some((l) => l.includes("Which tests should cover it?")), JSON.stringify(after.lines));
+  assert.ok(!after.lines.some((l) => l.includes("Where should the reminders be stored?")));
+  assert.equal(after.options[0].label, "Unit tests only");
+  assert.equal(after.sent, undefined);
+
+  // The same screen read again changes nothing (the box keeps its "Sent …" line and does not redraw).
+  assert.equal(nextScreen(shown, parseScreen(first)), shown);
+  // A read that failed or caught the screen between two prompts keeps what is shown.
+  assert.equal(nextScreen(shown, { lines: [], options: [], error: "no such terminal" }), shown);
+  assert.equal(nextScreen(shown, parseScreen("")), shown);
+  console.log("ok next question");
 }
