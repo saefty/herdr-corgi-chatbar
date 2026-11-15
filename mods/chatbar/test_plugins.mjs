@@ -1,6 +1,6 @@
 // Run: node --test test_plugins.mjs
 import assert from "node:assert/strict";
-import { mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine } from "./plugins.js";
+import { mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine, publishDelay, GOTO_EVERY } from "./plugins.js";
 
 const agent = { address: "t4", space: "s1", space_name: "shop", tab_name: "api", title: "✳ Fix login", status: "blocked", program: { name: "Claude Code" } };
 
@@ -46,6 +46,12 @@ assert.equal(items.length, 1);
 assert.equal(items[0].title, "Reply to Fix login");
 assert.equal(items[0].context, "blue");
 assert.deepEqual(readRequest(items[0].run[0][1].value), { terminal: "t4", text: null, append: false });
+
+// The Go to list goes out at once the first time and after a quiet spell, else at most every GOTO_EVERY.
+assert.equal(publishDelay(undefined, 1000), 0);
+assert.equal(publishDelay(1000, 2000), GOTO_EVERY - 1000);
+assert.equal(publishDelay(1000, 1000 + GOTO_EVERY), 0);
+assert.equal(publishDelay(1000, 60000), 0);
 
 // Progress from a provider: kept when it has a total, "now doing" and the transcript pass through.
 const prog = infoFor(agent, { progress: { done: 3, total: 7, eta: 4 }, doing: "Running tests", session: "/x/s.jsonl" }, null);

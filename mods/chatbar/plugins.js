@@ -67,3 +67,10 @@ export function gotoItems(list) {
     run: [["goto.set", { key: "chatbar.request", value: { action: "open", terminal: a.address, from: "goto" } }]],
   }));
 }
+
+// How long to hold a new Go to list back (ms): every write to shared state re-renders every mod, and with many agents
+// the list changes on each status change. The first change goes out at once, later ones at most every GOTO_EVERY.
+export const GOTO_EVERY = 5000;
+export function publishDelay(lastAt, now, every = GOTO_EVERY) {
+  return lastAt == null ? 0 : Math.max(0, lastAt + every - now);
+}

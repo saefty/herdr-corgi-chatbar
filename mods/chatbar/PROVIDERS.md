@@ -114,6 +114,6 @@ The command `chatbar.mic` (keys.json, or `herdr-app do chatbar.mic`) does the sa
 | `chatbar.api` | `{version: 1}` | on start; `null` when the bar's last copy closes (removed, quit) |
 | `chatbar.request` | `null` | after taking a request |
 | `chatbar.closed` | `{<address>: status}` | a bubble closed until its agent's status changes |
-| `goto.providers`, `goto.items.chatbar` | see 4. | on start, and when the list changes |
+| `goto.providers`, `goto.items.chatbar` | see 4. | on start, and when the list changes (at once, then at most every 5 s) |
 | `dictate.request` | see 5. | the mic is clicked |
 | the hook's `request` | `{context, run, at}` | "Go to" with a context hook |

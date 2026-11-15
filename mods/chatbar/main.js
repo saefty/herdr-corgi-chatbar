@@ -13,7 +13,7 @@ import { View, div, image, svg, PathBuilder } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings, nextCommand } from "herdr";
 import { parseScreen, nextScreen } from "./screen.js";
-import { API_VERSION, mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine } from "./plugins.js";
+import { API_VERSION, mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine, publishDelay } from "./plugins.js";
 
 const MAX_OPEN = 3, MAX_BUSY = 4, W = 360, LINE = 18;
 const MOTION = { duration: 180, easing: "ease-out" };
@@ -234,7 +234,15 @@ export default class Chatbar extends View {
     const json = JSON.stringify(items);
     if (json === this.lastItems) return;
     this.lastItems = json;
-    cx.timer.after(0, () => { if (json !== JSON.stringify(shared("goto.items.chatbar"))) setShared("goto.items.chatbar", items); });
+    this.gotoList = items;
+    if (this.publishing) return; // the scheduled write takes the newest list
+    this.publishing = true;
+    // Outside render, and held back while the list keeps changing (publishDelay): a write re-renders every mod.
+    cx.timer.after(publishDelay(this.publishedAt, Date.now()), () => {
+      this.publishing = false;
+      this.publishedAt = Date.now();
+      if (JSON.stringify(this.gotoList) !== JSON.stringify(shared("goto.items.chatbar"))) setShared("goto.items.chatbar", this.gotoList);
+    });
   }
 
   openTerminal(address) {
