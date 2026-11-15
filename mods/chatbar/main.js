@@ -11,7 +11,7 @@
 
 import { View, div, image, svg, PathBuilder } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings, nextCommand } from "herdr";
+import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings, nextCommand, checking } from "herdr";
 import { parseScreen, nextScreen } from "./screen.js";
 import { API_VERSION, mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine, publishDelay } from "./plugins.js";
 
@@ -76,6 +76,10 @@ export default class Chatbar extends View {
       s.on("submit", (_e, cx) => this.reply(i, cx));
       return s;
     });
+    // `herdr-app check` runs init and the first render for real: there the bar starts no timer, reads no screen
+    // (hc) and starts no progress.py.
+    this.dry = checking();
+    if (this.dry) return;
     // Data only: the "waiting 5m" labels, and progress for the agents shown (poll skips when there are none).
     cx.timer.every(30000, (cx) => cx.notify());
     cx.timer.every(5000, (cx) => { this.poll(cx); for (const x of this.live ?? []) this.reread(x, cx); });
@@ -98,7 +102,7 @@ export default class Chatbar extends View {
 
   // Task-list progress and "now doing" for this.want ({address, pid, cwd, session}), outside render.
   poll(cx) {
-    if (!this.want?.length || this.polling) return;
+    if (this.dry || !this.want?.length || this.polling) return;
     this.polling = true;
     const want = this.want;
     cx.spawn(async (cx) => {
@@ -123,6 +127,7 @@ export default class Chatbar extends View {
   }
 
   read(address, cx, retry = false) {
+    if (this.dry) return;
     const id = ++this.reads;
     this.screens[address] = { loading: id, lines: [], options: [] };
     cx.spawn(async (cx) => {
