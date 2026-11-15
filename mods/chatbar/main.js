@@ -2,7 +2,8 @@
 // Answer from any layout: numbered choices as buttons (hc keys), a reply field (hc send),
 // the live terminal in a window, or go to its pane. Floats bottom-right through the layouts'
 // "floating" lists; renders nothing (so the float hides) when nobody waits.
-// Screens are read (hc read, ~0.4 s) only for open blocked boxes, once per status change or open.
+// Screens are read (hc read, ~0.4 s) only for open blocked boxes: on a status change or open, then again every 5 s
+// and after an answer from here, because an agent stays blocked while a prompt with several questions moves on.
 // Claude Code agents shown here get task-list progress and "now doing" (progress.py, every 5 s at most),
 // unless a provider already publishes them. Working agents with a task list wait as small ringed heads.
 // Other mods plug in through shared state only (PROVIDERS.md): chatbar.request, chatbar.agents.<provider>,
@@ -11,7 +12,7 @@
 import { View, div, image, svg, PathBuilder } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { agents, spaces, panes, terminals, focused, shared, setShared, theme, run, hc, exec, appHome, openOverlay, notify, settings, nextCommand } from "herdr";
-import { parseScreen } from "./screen.js";
+import { parseScreen, nextScreen } from "./screen.js";
 import { API_VERSION, mergeProviders, infoFor, goTo, readRequest, gotoItems, progressLine } from "./plugins.js";
 
 const MAX_OPEN = 3, MAX_BUSY = 4, W = 360, LINE = 18;
@@ -77,7 +78,7 @@ export default class Chatbar extends View {
     });
     // Data only: the "waiting 5m" labels, and progress for the agents shown (poll skips when there are none).
     cx.timer.every(30000, (cx) => cx.notify());
-    cx.timer.every(5000, (cx) => this.poll(cx));
+    cx.timer.every(5000, (cx) => { this.poll(cx); for (const x of this.live ?? []) this.reread(x, cx); });
     // keys.json "chatbar.mic": dictate into the front bubble (chatbar.mic:<address>: into that agent's).
     cx.spawn(async (cx) => {
       for (;;) {
@@ -143,6 +144,25 @@ export default class Chatbar extends View {
     });
   }
 
+  // The screen of an open blocked box, read again without the "Reading the screen…" note: the box changes only when
+  // the screen did (screen.js nextScreen).
+  reread(address, cx) {
+    const cached = this.screens[address];
+    if (!cached || cached.loading || cached.rereading) return;
+    cached.rereading = true;
+    cx.spawn(async (cx) => {
+      let read;
+      try {
+        const r = await hc(["read", address, "--json"]);
+        read = r.code === 0 ? parseScreen(JSON.parse(r.stdout).text ?? "") : { lines: [], options: [], error: true };
+      } catch { read = { lines: [], options: [], error: true }; }
+      if (this.screens[address] !== cached) return; // the status moved on, or the box was opened again, meanwhile
+      cached.rereading = false;
+      const next = nextScreen(cached, read);
+      if (next !== cached) { this.screens[address] = next; cx.notify(); }
+    });
+  }
+
   // Always by address: the box's own agent, never the focused terminal.
   send(address, args, what, cx) {
     if (this.screens[address]) this.screens[address].sent = what;
@@ -153,7 +173,7 @@ export default class Chatbar extends View {
       if (r.code !== 0) {
         notify({ title: `Couldn't send to ${address}`, body: (r.stderr || r.stdout).trim().slice(0, 200), level: "error" });
         if (this.screens[address]) this.screens[address].sent = null;
-      }
+      } else cx.timer.after(700, (cx) => this.reread(address, cx)); // what the answer led to: the next question, if any
       cx.notify();
     });
   }
@@ -306,9 +326,8 @@ export default class Chatbar extends View {
     }
     for (const x of this.grown) if (!openSet.has(x)) this.grown.delete(x);
 
-    for (const a of open) {
-      if (a.status === "blocked" && !this.min.has(a.address) && !this.screens[a.address]) this.read(a.address, cx);
-    }
+    this.live = open.filter((a) => a.status === "blocked" && !this.min.has(a.address)).map((a) => a.address); // the screens to keep current
+    for (const x of this.live) if (!this.screens[x]) this.read(x, cx);
     // New boxes mount folded and grow one flip later; GPUI animates the height natively.
     // ponytail: a one-shot flip, not an animation timer.
     if (open.some((a) => !this.grown.has(a.address)) && !this.flipping) {

@@ -104,3 +104,12 @@ export function parseScreen(text, max = 12) {
   const cut = rules.length >= 2 ? rules[rules.length - 2] : lines.length;
   return { lines: tail(lines.slice(0, cut), max), options: [] };
 }
+
+// A blocked box's cached screen after another read under the same status: the new one when the agent's screen moved
+// on (the next question of a prompt with several; the agent stays blocked, so the status does not say so), else the
+// cached one, which keeps its "Sent …" line. A failed read, or an empty screen between two prompts, keeps what is shown.
+export function nextScreen(cached, read) {
+  const what = (s) => JSON.stringify([s.lines, s.options, s.card ?? null]);
+  if (read.error || (!read.lines.length && !read.options.length) || what(read) === what(cached)) return cached;
+  return read;
+}
