@@ -54,7 +54,7 @@ agent's question, press one of its options or type a reply, and keep working whe
 | What | Needed for | |
 |---|---|---|
 | Herdr 0.1.16 or newer, with herdr-core (`hc`) | everything | required |
-| `python3` (standard library only) | progress and "now doing" | optional: without it the bar works, without progress |
+| `python3` (standard library only) and `ps` | progress and "now doing" | optional: without them the bar works, without progress |
 | Claude Code | answer cards, progress | other agents get their screen's last lines |
 | [dictate](https://github.com/saefty/herdr-corgi-dictate) mod, with ffmpeg and parakeet-mlx | the mic | optional, macOS only (`brew install ffmpeg`, `uv tool install parakeet-mlx`) |
 
@@ -98,9 +98,10 @@ By hand, step by step:
    If the node already has a `floating` list, add the entry to it.
 3. Run `herdr-app check ~/.config/herdr-app/mods/chatbar`. The check reads no screen and starts no process.
 
-It runs `hc read`, `hc send` and `hc keys` on your agents' terminals, and `python3 progress.py`, which reads Claude
-Code's session transcripts (`~/.claude/projects/…`, and `~/.claude/sessions/<pid>.json` to find them; never the
-`*.key` files) and keeps a small cache next to itself. It makes no network calls.
+It runs `hc read`, `hc send` and `hc keys` on your agents' terminals, and `python3 progress.py`, which runs `ps`
+to find each agent's Claude Code process, reads Claude Code's session transcripts (`~/.claude/projects/…`, and
+`~/.claude/sessions/<pid>.json` to find them; never the `*.key` files) and keeps a small cache next to itself. It
+makes no network calls.
 
 ## Customize
 
