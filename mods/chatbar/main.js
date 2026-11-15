@@ -411,7 +411,7 @@ export default class Chatbar extends View {
         .child(p.total > 0
           ? div().id(`ring-${addr}`).flex_none().tooltip(progressLine(p)).child(ring(14, p.done / p.total, t.background + "55", t.background, 2.5))
           : div().id(`dot-${addr}`).size(9).flex_none().rounded_full().tooltip(`Agent status: ${a.status}.`).accessibility_label(`Agent status: ${a.status}`).border_1().border_color(t.background).bg(t[a.status] ?? t.done))
-        .child(icon(a.program, 16, t.background))
+        .children([icon(a.program, 16, t.background)].filter(Boolean)) // a program without an icon: child(null) throws
         .child(v_flex().flex_1().min_w(0)
           .child(div().truncate().text_size(13.5).font_semibold().child(acc.title))
           .child(div().truncate().text_size(12.5).opacity(0.85)
@@ -468,7 +468,7 @@ export default class Chatbar extends View {
         // A press here must not reach the float: unstopped, it drags the box and the field never gets the cursor.
         .child(div().id(`reply-${addr}`).flex_1().min_w(0).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).child(Input.new(this.inputs[slot]).h(34).px(10).rounded(17)
           .border_1().border_color(t.input).bg(t.background).text_size(13).text_color(t.foreground)))
-        .child(this.mic(t, addr)))
+        .children([this.mic(t, addr)].filter(Boolean))) // no mic without the dictate mod: child(null) throws
       .child(h_flex().h(36).px(8).gap(6).items_center().justify_end()
         .child(this.action(t, `term-${addr}`, "Open terminal", () => this.openTerminal(addr), "Open this agent's terminal."))
         .child(this.action(t, `go-${addr}`, "Go to", () => {
